@@ -35,20 +35,20 @@ header = """
 form = """
     <form method="post">
         <label>Username</label>
-            <input type="text" name="username" value="%s">
-            <span class="error">%s</span>
+            <input type="text" name="username" value="{username}">
+            <span class="error">{username_error}</span>
         <br>
         <label>Password</label>
             <input type="password" name="password">
-            <span class="error">%s</span>
+            <span class="error">{password_error}</span>
         <br>
         <label>Verify Password</label>
             <input type="password" name="verify">
-            <span class="error">%s</span>
+            <span class="error">{verify_error}</span>
         <br>
         <label>Email (optional)</label>
-            <input type="text" name="email" value="%s">
-            <span class="error">%s</span>
+            <input type="text" name="email" value="{email}">
+            <span class="error">{email_error}</span>
         <br>
             <input type="submit">
     </form>
@@ -71,26 +71,22 @@ EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
-# class MainHandler(webapp2.RequestHandler):
-#     def render(self, **params):
-#         self.response.out.write(render_str(**params))
-#
+class MainHandler(webapp2.RequestHandler):
+     def render(self, **params):
+         self.response.write(header + form.format(**params) + footer)
+         #self.response.write(header + form.format(username="",username_error="",password_error="",verify_error="",email="",email_error="") + footer)
 #     def get(self):
 #         self.response.write(header + form + footer)
 #
 #     #def post(self):
 #     #    self.response.write("Hello, World!")
 
-class UserSignup(webapp2.RequestHandler):
+#class UserSignup(webapp2.RequestHandler):
+class UserSignup(MainHandler):
     def get(self):
-        #set values to blank while page loads
-        username = ""
-        email = ""
-        error_username = ""
-        error_password = ""
-        error_verify = ""
-        error_email = ""
-        self.response.write(header + form % (username, error_username, error_password, error_verify, email, error_email) + footer)
+
+        params = {"username":"","username_error":"","password_error":"","verify_error":"","email":"","email_error":""}
+        self.render(**params)
 
     def post(self):
         #declare variables for the user inputs
@@ -101,31 +97,37 @@ class UserSignup(webapp2.RequestHandler):
 
         #set error values to False and blank before user inputs
         error = False
-        error_username = ""
-        error_password = ""
-        error_verify = ""
-        error_email = ""
+
+        username_error = ""
+        password_error = ""
+        verify_error = ""
+        email_error = ""
 
         #confirm if valid username
         if not valid_username(username):
-            error_username = "That is not a valid username"
+            username_error = "That is not a valid username"
             error = True
         #confirm if valid password
         if not valid_password(password):
-            error_password = "That is not a valid password"
+            password_error = "That is not a valid password"
             error = True
         #confirm if passwords match
         elif password != verify:
-            error_verify = "The passwords do not match"
+            verify_error = "The passwords do not match"
             error = True
         #confirm if valid email
         if not valid_email(email):
-            error_email = "That is not a valid email"
+            email_error = "That is not a valid email"
             error = True
+
+        params = {"username":username,"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":email,"email_error":email_error}
 
         #if there is an error, re-render the page and show the errors
         if error:
-            self.response.write(header + form % (username,error_username,error_password,error_verify,email,error_email) + footer)
+            #params = {"username":username,"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":email,"email_error":email_error}
+            self.render(**params)
+            #self.response.write(header + form.format(username=username,username_error=error_username,password_error=error_password,verify_error=error_verify,email=email,email_error=error_email) + footer)
+            #self.response.write(header + form.format(username=username) % (error_username,error_password,error_verify,email,error_email) + footer)
         #if no error, navigate to welcome page
         else:
             self.redirect('/welcome?username=' + username)
