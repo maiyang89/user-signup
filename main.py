@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import webapp2, re
+import webapp2, re, cgi
 
 header = """
 <!DOCTYPE html>
@@ -39,11 +39,11 @@ form = """
             <span class="error">{username_error}</span>
         <br>
         <label>Password</label>
-            <input type="password" name="password">
+            <input type="password" name="password" value="">
             <span class="error">{password_error}</span>
         <br>
         <label>Verify Password</label>
-            <input type="password" name="verify">
+            <input type="password" name="verify" value="">
             <span class="error">{verify_error}</span>
         <br>
         <label>Email (optional)</label>
@@ -59,6 +59,14 @@ footer = """
 </html>
 """
 
+class MainHandler(webapp2.RequestHandler):
+     def render(self, **params):
+         content = header + form.format(**params) + footer
+         self.response.write(content)
+         #self.response.write(header + form.format(username="",username_error="",password_error="",verify_error="",email="",email_error="") + footer)
+#     def get(self):
+#         self.response.write(header + form + footer)
+
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
     return username and USER_RE.match(username)
@@ -71,72 +79,69 @@ EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
-class MainHandler(webapp2.RequestHandler):
-     def render(self, **params):
-         self.response.write(header + form.format(**params) + footer)
-         #self.response.write(header + form.format(username="",username_error="",password_error="",verify_error="",email="",email_error="") + footer)
-#     def get(self):
-#         self.response.write(header + form + footer)
-#
-#     #def post(self):
-#     #    self.response.write("Hello, World!")
-
 #class UserSignup(webapp2.RequestHandler):
 class UserSignup(MainHandler):
     def get(self):
 
+        #params = username=username,username_error=error_username,password_error=error_password,verify_error=error_verify,email=email,email_error=error_email
         params = {"username":"","username_error":"","password_error":"","verify_error":"","email":"","email_error":""}
         self.render(**params)
 
     def post(self):
         #declare variables for the user inputs
-        username = self.request.get("username")
-        password = self.request.get("password")
-        verify = self.request.get("verify")
-        email = self.request.get("email")
+        username = cgi.escape(self.request.get("username"))
+        password = cgi.escape(self.request.get("password"))
+        verify = cgi.escape(self.request.get("verify"))
+        email = cgi.escape(self.request.get("email"))
 
-        #set error values to False and blank before user inputs
+        #set error values to False before user inputs
         error = False
 
-        username_error = ""
-        password_error = ""
-        verify_error = ""
-        email_error = ""
+        params = dict(username = username,
+                      email = email,
+                      username_error = "",
+                      password_error = "",
+                      verify_error = "",
+                      email_error = "")
 
         #confirm if valid username
         if not valid_username(username):
-            username_error = "That is not a valid username"
+            params["username_error"] = "That is not a valid username"
+            #username_error = "That is not a valid username"
             error = True
         #confirm if valid password
         if not valid_password(password):
-            password_error = "That is not a valid password"
+            params["password_error"] = "That is not a valid password"
+            #password_error = "That is not a valid password"
             error = True
         #confirm if passwords match
         elif password != verify:
-            verify_error = "The passwords do not match"
+            params["verify_error"] = "The passwords do not match"
+            #verify_error = "The passwords do not match"
             error = True
         #confirm if valid email
         if not valid_email(email):
-            email_error = "That is not a valid email"
+            params["email_error"] = "That is not a valid email"
+            #email_error = "That is not a valid email"
             error = True
 
-        params = {"username":username,"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":email,"email_error":email_error}
+            #params = {"username":cgi.escape(username),"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":cgi.escape(email),"email_error":email_error}
 
         #if there is an error, re-render the page and show the errors
         if error:
-            #params = {"username":username,"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":email,"email_error":email_error}
+                #params = {"username":username,"username_error":username_error,"password_error":password_error,"verify_error":verify_error,"email":email,"email_error":email_error}
             self.render(**params)
-            #self.response.write(header + form.format(username=username,username_error=error_username,password_error=error_password,verify_error=error_verify,email=email,email_error=error_email) + footer)
-            #self.response.write(header + form.format(username=username) % (error_username,error_password,error_verify,email,error_email) + footer)
+                #self.response.write(header + form.format(username=username,username_error=error_username,password_error=error_password,verify_error=error_verify,email=email,email_error=error_email) + footer)
+                #self.response.write(header + form.format(username=username) % (error_username,error_password,error_verify,email,error_email) + footer)
         #if no error, navigate to welcome page
         else:
-            self.redirect('/welcome?username=' + username)
+            self.redirect('/welcome?username=' + cgi.escape(username))
 
 #create a Welcome page for successful user signup
 class Welcome(webapp2.RequestHandler):
     def get(self):
         username = self.request.get("username")
-        self.response.write("<h1>Welcome, " + username + "</h1>")
+        self.response.write("<h1>Welcome, " + cgi.escape(username) + "</h1>")
 
 app = webapp2.WSGIApplication([
     #('/', MainHandler),
